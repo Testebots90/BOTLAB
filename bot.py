@@ -512,7 +512,6 @@ def admin_or_mod_check():
 
 @bot.tree.command(name="hashtag", description="[ADMIN] Define a hashtag obrigatória")
 @app_commands.guild_only()
-@app_commands.default_permissions(administrator=True)  # ✅ MUDE ISTO
 @app_commands.describe(hashtag="Hashtag obrigatória para inscrição")
 async def hashtag(interaction: discord.Interaction, hashtag: str):
     if not is_admin_or_moderator(interaction):  # ✅ ADICIONE ISTO
@@ -540,7 +539,6 @@ async def hashtag(interaction: discord.Interaction, hashtag: str):
 
 @bot.tree.command(name="tag", description="[ADMIN] Configura a tag do servidor")
 @app_commands.guild_only()
-@app_commands.default_permissions(administrator=True)  # ✅ MUDE ISTO
 @app_commands.describe(
     acao="Ação a realizar",
     texto="Texto da tag do servidor",
