@@ -307,7 +307,7 @@ async def on_ready():
     except Exception as e:
         logger.error(f"Erro ao re-registrar view: {e}")
     
-    # ---- MOVEI AQUI a tentativa de definir default_member_permissions ANTES do sync ----
+    # Substituir a lógica que forçava "administrator" como default_member_permissions
     try:
         admin_cmds = [
             "setup_inscricao","hashtag","tag","fichas","tirar","lista","exportar",
@@ -316,18 +316,22 @@ async def on_ready():
         ]
         for name in admin_cmds:
             cmd = None
+            # tenta obter comando diretamente
             try:
                 cmd = bot.tree.get_command(name)
             except Exception:
+                cmd = None
+            if not cmd:
                 for c in bot.tree.commands:
                     if c.name == name:
                         cmd = c
                         break
-            if cmd and hasattr(cmd, "default_member_permissions"):
-                cmd.default_member_permissions = discord.Permissions(administrator=True)
+            if cmd:
+                # remove a restrição de administrador para que o comando fique visível na UI
+                # (a execução ainda será protegida por is_admin_or_moderator dentro do handler)
+                cmd.default_member_permissions = None
     except Exception:
         pass
-    # ---- fim da movimentação ----
 
     try:
         synced = await bot.tree.sync()
