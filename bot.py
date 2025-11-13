@@ -531,7 +531,10 @@ def is_admin_or_moderator(interaction: discord.Interaction) -> bool:
 @app_commands.describe(hashtag="Hashtag obrigatória para inscrição")
 async def hashtag(interaction: discord.Interaction, hashtag: str):
     if not is_admin_or_moderator(interaction):
-        await interaction.response.send_message("❌ Você não tem permissão para usar este comando.", ephemeral=True)
+        await interaction.response.send_message(
+            "❌ Você não tem permissão para usar este comando.",
+            ephemeral=True
+        )
         return
     
     if db.is_hashtag_locked():
@@ -551,7 +554,7 @@ async def hashtag(interaction: discord.Interaction, hashtag: str):
     logger.info(f"Hashtag definida como '{hashtag}' por {interaction.user}")
 
 @bot.tree.command(name="tag", description="[ADMIN] Configura a tag do servidor")
-@app_commands.default_permissions(administrator=True)
+@app_commands.guild_only()
 @app_commands.describe(
     acao="Ação a realizar",
     texto="Texto da tag do servidor",
@@ -563,6 +566,13 @@ async def tag(
     texto: Optional[str] = None,
     quantidade: Optional[int] = 1
 ):
+    if not is_admin_or_moderator(interaction):
+        await interaction.response.send_message(
+            "❌ Você não tem permissão para usar este comando.",
+            ephemeral=True
+        )
+        return
+    
     if acao == "status":
         tag_config = db.get_tag()
         status = "✅ Ativada" if tag_config["enabled"] else "❌ Desativada"
@@ -583,14 +593,12 @@ async def tag(
         embed.add_field(name="Texto da TAG", value=variations_text, inline=False)
         embed.add_field(name="Fichas Bônus", value=str(tag_config["quantity"]), inline=False)
         
-        # Teste de detecção no usuário que executou o comando
         if tag_config["enabled"] and tag_config["text"]:
             member = interaction.user
             if isinstance(member, discord.User):
                 member = interaction.guild.get_member(interaction.user.id)
             
             if member:
-                # Testa se a TAG está no nome do usuário
                 tag_search = tag_config["text"].strip().lower()
                 fields_with_tag = []
                 
@@ -615,7 +623,6 @@ async def tag(
                     inline=False
                 )
                 
-                # Indica se seria concedida ficha
                 has_tag = any(field_value and tag_search in field_value.strip().lower() 
                              for _, field_value in checks)
                 
@@ -650,7 +657,6 @@ async def tag(
 
 @bot.tree.command(name="fichas", description="[ADMIN] Adiciona um cargo bônus")
 @app_commands.guild_only()
-@app_commands.default_permissions(administrator=True)
 @app_commands.describe(
     cargo="Cargo que dará fichas bônus",
     quantidade="Quantidade de fichas bônus",
@@ -690,9 +696,16 @@ async def fichas(
     logger.info(f"Cargo bônus adicionado: {cargo.name} ({quantidade} fichas, {abbrev}) por {interaction.user}")
 
 @bot.tree.command(name="tirar", description="[ADMIN] Remove um cargo bônus")
-@app_commands.default_permissions(administrator=True)
+@app_commands.guild_only()
 @app_commands.describe(cargo="Cargo a ser removido dos bônus")
 async def tirar(interaction: discord.Interaction, cargo: discord.Role):
+    if not is_admin_or_moderator(interaction):
+        await interaction.response.send_message(
+            "❌ Você não tem permissão para usar este comando.",
+            ephemeral=True
+        )
+        return
+    
     if db.remove_bonus_role(cargo.id):
         await interaction.response.send_message(
             f"✅ Cargo {cargo.mention} removido dos bônus!",
@@ -706,9 +719,16 @@ async def tirar(interaction: discord.Interaction, cargo: discord.Role):
         )
 
 @bot.tree.command(name="lista", description="[ADMIN] Lista os participantes")
-@app_commands.default_permissions(administrator=True)
+@app_commands.guild_only()
 @app_commands.describe(tipo="Tipo de listagem")
 async def lista(interaction: discord.Interaction, tipo: Literal["simples", "com_fichas"]):
+    if not is_admin_or_moderator(interaction):
+        await interaction.response.send_message(
+            "❌ Você não tem permissão para usar este comando.",
+            ephemeral=True
+        )
+        return
+    
     participants = db.get_all_participants()
     
     if not participants:
@@ -724,7 +744,6 @@ async def lista(interaction: discord.Interaction, tipo: Literal["simples", "com_
     
     if tipo == "simples":
         lines.append("📋 **Lista de Participantes (Simples)**\n")
-        # monta lista de nomes e ordena alfabeticamente
         names = [f"{data['first_name']} {data['last_name']}" for _, data in participants.items()]
         names.sort(key=lambda s: s.lower())
         for i, name in enumerate(names, 1):
@@ -732,7 +751,6 @@ async def lista(interaction: discord.Interaction, tipo: Literal["simples", "com_
     
     else:
         lines.append("📋 **Lista de Participantes (Com Fichas)**\n")
-        # não colocar linha em branco entre participantes
         for user_id, data in participants.items():
             entries = utils.format_detailed_entry(
                 data["first_name"],
@@ -740,7 +758,6 @@ async def lista(interaction: discord.Interaction, tipo: Literal["simples", "com_
                 data["tickets"]
             )
             lines.extend(entries)
-            # removido: lines.append("")
     
     content = "\n".join(lines)
     
@@ -752,9 +769,16 @@ async def lista(interaction: discord.Interaction, tipo: Literal["simples", "com_
         await interaction.followup.send(content, ephemeral=True)
 
 @bot.tree.command(name="exportar", description="[ADMIN] Exporta lista de participantes")
-@app_commands.default_permissions(administrator=True)
+@app_commands.guild_only()
 @app_commands.describe(tipo="Tipo de exportação")
 async def exportar(interaction: discord.Interaction, tipo: Literal["simples", "com_fichas"]):
+    if not is_admin_or_moderator(interaction):
+        await interaction.response.send_message(
+            "❌ Você não tem permissão para usar este comando.",
+            ephemeral=True
+        )
+        return
+    
     participants = db.get_all_participants()
     
     if not participants:
@@ -768,7 +792,6 @@ async def exportar(interaction: discord.Interaction, tipo: Literal["simples", "c
     lines = []
     
     if tipo == "simples":
-        # Cria lista de nomes e ordena alfabeticamente (igual ao /lista simples)
         names = [f"{data['first_name']} {data['last_name']}" for _, data in participants.items()]
         names.sort(key=lambda s: s.lower())
         
@@ -777,7 +800,6 @@ async def exportar(interaction: discord.Interaction, tipo: Literal["simples", "c
             lines.append(f"{i}. {name}")
     else:
         lines.append("📋 Lista de Participantes (Com Fichas)\n")
-        # monta a mesma estrutura do /lista com_fichas (sem linhas em branco entre participantes)
         for user_id, data in participants.items():
             entries = utils.format_detailed_entry(
                 data["first_name"],
@@ -788,7 +810,6 @@ async def exportar(interaction: discord.Interaction, tipo: Literal["simples", "c
     
     content = "\n".join(lines)
     
-    # Salva em arquivo
     filename = f"participantes_{tipo}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt"
     with open(filename, 'w', encoding='utf-8') as f:
         f.write(content)
@@ -803,8 +824,15 @@ async def exportar(interaction: discord.Interaction, tipo: Literal["simples", "c
     logger.info(f"Lista exportada ({tipo}) por {interaction.user}")
 
 @bot.tree.command(name="atualizar", description="[ADMIN] Recalcula fichas de todos os participantes")
-@app_commands.default_permissions(administrator=True)
+@app_commands.guild_only()
 async def atualizar(interaction: discord.Interaction):
+    if not is_admin_or_moderator(interaction):
+        await interaction.response.send_message(
+            "❌ Você não tem permissão para usar este comando.",
+            ephemeral=True
+        )
+        return
+    
     await interaction.response.defer(ephemeral=True)
     
     participants = db.get_all_participants()
@@ -844,8 +872,15 @@ async def atualizar(interaction: discord.Interaction):
     logger.info(f"Fichas atualizadas por {interaction.user}: {updated} sucesso, {errors} erros")
 
 @bot.tree.command(name="estatisticas", description="[ADMIN] Mostra estatísticas do sorteio")
-@app_commands.default_permissions(administrator=True)
+@app_commands.guild_only()
 async def estatisticas(interaction: discord.Interaction):
+    if not is_admin_or_moderator(interaction):
+        await interaction.response.send_message(
+            "❌ Você não tem permissão para usar este comando.",
+            ephemeral=True
+        )
+        return
+    
     stats = db.get_statistics()
     
     embed = discord.Embed(
@@ -895,277 +930,8 @@ async def estatisticas(interaction: discord.Interaction):
     
     await interaction.response.send_message(embed=embed, ephemeral=True)
 
-@bot.tree.command(name="limpar", description="[ADMIN] Limpa dados do sistema")
-@app_commands.guild_only()
-@app_commands.default_permissions(administrator=True)
-async def limpar(interaction: discord.Interaction):
-    if not is_admin_or_moderator(interaction):
-        await interaction.response.send_message(
-            "❌ Você não tem permissão para usar este comando.",
-            ephemeral=True
-        )
-        return
-    
-    def make_closed_view():
-        v = discord.ui.View(timeout=None)
-        btn = discord.ui.Button(label="Inscrições Encerradas", style=discord.ButtonStyle.gray, disabled=True)
-        v.add_item(btn)
-        return v
-
-    class ConfirmView(discord.ui.View):
-        def __init__(self):
-            super().__init__(timeout=60)
-            self.value = None
-            self.message = None
-            self.closed = False  # flag para evitar dupla execução
-
-        async def safe_delete_message(self):
-            if not self.closed and self.message:
-                try:
-                    await self.message.delete()
-                except Exception:
-                    pass
-            self.closed = True
-            self.stop()
-
-        def _extract_mid(self, data):
-            # tenta várias chaves comuns onde o DB pode ter guardado o id da mensagem
-            return data.get("message_id") or data.get("msg_id") or data.get("mid") or data.get("message") or data.get("messageId")
-
-        async def _delete_msg_by_id(self, inter: discord.Interaction, mid):
-            """Tenta deletar a mensagem: primeiro no canal configurado, depois procura em todos os canais do guild."""
-            try:
-                mid_int = int(mid)
-            except Exception:
-                logger.warning(f"ID de mensagem inválido: {mid}")
-                return False
-
-            channel_id = db.get_inscricao_channel()
-            channel = None
-            # tenta pegar canal a partir do guild (mais confiável dentro de interações)
-            try:
-                if channel_id:
-                    channel = inter.guild.get_channel(int(channel_id))
-            except Exception:
-                channel = None
-
-            # fallback para cache global
-            if not channel and channel_id:
-                try:
-                    channel = bot.get_channel(int(channel_id))
-                except Exception:
-                    channel = None
-
-            # tenta deletar no canal conhecido
-            if channel:
-                try:
-                    msg = await channel.fetch_message(mid_int)
-                    await msg.delete()
-                    return True
-                except Exception as e:
-                    logger.debug(f"Não conseguiu deletar mensagem {mid_int} no canal {getattr(channel,'id',None)}: {e}")
-
-            # procura em todos os canais do guild (custa mais, mas encontra mensagens em canal diferente)
-            for ch in inter.guild.text_channels:
-                try:
-                    msg = await ch.fetch_message(mid_int)
-                    await msg.delete()
-                    logger.info(f"Mensagem {mid_int} removida no canal {ch.id}")
-                    return True
-                except Exception:
-                    continue
-
-            logger.warning(f"Não foi possível encontrar/deletar a mensagem {mid_int} em nenhum canal do servidor.")
-            return False
-
-        @discord.ui.button(label="Limpar Inscrições", style=discord.ButtonStyle.danger)
-        async def confirm_participants(self, inter: discord.Interaction, button: discord.ui.Button):
-            if self.closed:
-                return
-            await inter.response.defer(ephemeral=True)
-
-            participants = db.get_all_participants() or {}
-            deleted_count = 0
-            attempted = 0
-            removed_from_db = 0
-
-            # tenta deletar mensagens e remover participante individualmente (workaround se clear_participants estiver quebrado)
-            for user_id, data in list(participants.items()):
-                mid = self._extract_mid(data)
-                if mid:
-                    attempted += 1
-                    try:
-                        ok = await self._delete_msg_by_id(inter, mid)
-                        if ok:
-                            deleted_count += 1
-                    except Exception as e:
-                        logger.warning(f"Erro ao tentar deletar mensagem {mid}: {e}", exc_info=True)
-
-                # tenta remover participante individualmente do DB
-                try:
-                    # algumas impls usam str/int keys; tenta ambos
-                    try:
-                        success = db.remove_participant(int(user_id))
-                    except Exception:
-                        success = db.remove_participant(user_id)
-                    if success:
-                        removed_from_db += 1
-                except AttributeError:
-                    # função não existe no DB -> ignora (iremos tentar clear_participants abaixo)
-                    pass
-                except Exception as e:
-                    logger.warning(f"Erro ao remover participante {user_id} individualmente: {e}", exc_info=True)
-
-            # tenta fallback para limpar tudo no DB (apenas se existir)
-            try:
-                db.clear_participants()
-            except Exception as e:
-                logger.warning(f"clear_participants falhou (ignorado): {e}")
-
-            logger.info(f"/limpar -> participantes={len(participants)} attempted_delete={attempted} deleted_messages={deleted_count} removed_db={removed_from_db}")
-            await inter.followup.send(
-                f"✅ Inscrições limpas!\n"
-                f"**Participantes removidos do DB**: {removed_from_db if removed_from_db>0 else len(participants)}\n"
-                f"**Mensagens deletadas**: {deleted_count}",
-                ephemeral=True
-            )
-
-            await self.safe_delete_message()
-
-        @discord.ui.button(label="Limpar Tudo", style=discord.ButtonStyle.danger)
-        async def confirm_all(self, inter: discord.Interaction, button: discord.ui.Button):
-            if self.closed:
-                return
-            await inter.response.defer(ephemeral=True)
-
-            participants = db.get_all_participants() or {}
-            deleted_count = 0
-            attempted = 0
-            removed_from_db = 0
-
-            for user_id, data in list(participants.items()):
-                mid = self._extract_mid(data)
-                if mid:
-                    attempted += 1
-                    try:
-                        ok = await self._delete_msg_by_id(inter, mid)
-                        if ok:
-                            deleted_count += 1
-                    except Exception as e:
-                        logger.warning(f"Erro ao tentar deletar mensagem {mid}: {e}", exc_info=True)
-
-                # tenta remover participante individualmente do DB
-                try:
-                    try:
-                        success = db.remove_participant(int(user_id))
-                    except Exception:
-                        success = db.remove_participant(user_id)
-                    if success:
-                        removed_from_db += 1
-                except AttributeError:
-                    pass
-                except Exception as e:
-                    logger.warning(f"Erro ao remover participante {user_id} individualmente: {e}", exc_info=True)
-
-            # tenta fallback para resetar tudo no DB (se existir)
-            try:
-                db.clear_all()
-            except Exception as e:
-                logger.warning(f"clear_all falhou (ignorado): {e}")
-
-            logger.info(f"/limpar tudo -> participantes={len(participants)} attempted_delete={attempted} deleted_messages={deleted_count} removed_db={removed_from_db}")
-            await inter.followup.send(
-                f"✅ Tudo limpo! Sistema resetado.\n"
-                f"**Participantes removidos do DB**: {removed_from_db if removed_from_db>0 else len(participants)}\n"
-                f"**Mensagens deletadas**: {deleted_count}",
-                ephemeral=True
-            )
-
-            await self.safe_delete_message()
-
-        @discord.ui.button(label="Encerrar Inscrições", style=discord.ButtonStyle.secondary)
-        async def end_inscricoes(self, inter: discord.Interaction, button: discord.ui.Button):
-            if self.closed:
-                return
-            await inter.response.defer(ephemeral=True)
-
-            try:
-                db.set_inscricoes_closed(True)
-            except Exception as e:
-                logger.warning(f"Não foi possível setar flag de inscrições: {e}")
-
-            button_msg_id = db.get_button_message_id()
-            button_ids = []
-            if isinstance(button_msg_id, (list, tuple)):
-                button_ids = list(button_msg_id)
-            elif button_msg_id:
-                button_ids = [button_msg_id]
-
-            edited = False
-            for bid in button_ids:
-                for ch in inter.guild.text_channels:
-                    try:
-                        msg = await ch.fetch_message(int(bid))
-                        try:
-                            await msg.edit(content="❌ INSCRIÇÕES ENCERRADAS", view=make_closed_view())
-                        except Exception:
-                            try:
-                                await msg.edit(content="❌ INSCRIÇÕES ENCERRADAS")
-                            except Exception as e:
-                                logger.warning(f"Falha ao editar mensagem {bid}: {e}")
-                        edited = True
-                    except Exception:
-                        continue
-
-            await inter.followup.send(
-                f"✅ Inscrições encerradas!\n"
-                f"{'Mensagens dos botões atualizadas.' if edited else 'Não foi possível encontrar/editar as mensagens dos botões.'}",
-                ephemeral=True
-            )
-
-            logger.info(f"Inscrições encerradas por {inter.user} (edited_button={edited})")
-            await self.safe_delete_message()
-
-        @discord.ui.button(label="Cancelar", style=discord.ButtonStyle.secondary)
-        async def cancel(self, inter: discord.Interaction, button: discord.ui.Button):
-            if self.closed:
-                return
-
-            await inter.response.defer(ephemeral=True)
-            await inter.followup.send("❌ Operação cancelada.", ephemeral=True)
-            await self.safe_delete_message()
-
-    # envia a View com explicação — guarda referência da mensagem para a view
-    embed = discord.Embed(
-        title="⚠️ Painel de Limpeza",
-        description=(
-
-            "Escolha uma ação abaixo:\n"
-            "• Limpar Inscrições — removes participantes e mensagens de inscrições.\n"
-            "• Limpar Tudo — reseta todos os dados do sistema.\n"
-            "• Encerrar Inscrições — fecha inscrições e atualiza o(s) botão(ões).\n"
-            "• Cancelar — fecha este painel sem alterações."
-        ),
-        color=discord.Color.orange()
-    )
-    view = ConfirmView()
-    try:
-        await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
-        # obtém a message object e atribui à view para que safe_delete_message consiga apagar
-        try:
-            orig = await interaction.original_response()
-            view.message = orig
-        except Exception:
-            view.message = None
-    except Exception as e:
-        logger.error(f"Erro ao enviar painel /limpar: {e}", exc_info=True)
-        try:
-            await interaction.response.send_message("❌ Erro ao abrir painel de limpeza.", ephemeral=True)
-        except:
-            pass
-
 @bot.tree.command(name="blacklist", description="[ADMIN] Gerencia a blacklist")
-@app_commands.default_permissions(administrator=True)
+@app_commands.guild_only()
 @app_commands.describe(
     acao="Ação a realizar",
     usuario="Usuário para banir/desbanir",
@@ -1177,6 +943,13 @@ async def blacklist(
     usuario: Optional[discord.User] = None,
     motivo: Optional[str] = None
 ):
+    if not is_admin_or_moderator(interaction):
+        await interaction.response.send_message(
+            "❌ Você não tem permissão para usar este comando.",
+            ephemeral=True
+        )
+        return
+    
     if acao == "lista":
         blacklist_data = db.get_blacklist()
         
@@ -1248,7 +1021,7 @@ async def blacklist(
             )
 
 @bot.tree.command(name="chat", description="[ADMIN] Bloqueia/desbloqueia chat")
-@app_commands.default_permissions(administrator=True)
+@app_commands.guild_only()
 @app_commands.describe(
     acao="Ação a realizar",
     canal="Canal a ser bloqueado"
@@ -1258,6 +1031,13 @@ async def chat(
     acao: Literal["on", "off", "status"],
     canal: Optional[discord.TextChannel] = None
 ):
+    if not is_admin_or_moderator(interaction):
+        await interaction.response.send_message(
+            "❌ Você não tem permissão para usar este comando.",
+            ephemeral=True
+        )
+        return
+    
     if acao == "status":
         chat_lock = db.get_chat_lock()
         status = "🔒 Bloqueado" if chat_lock["enabled"] else "🔓 Desbloqueado"
@@ -1289,7 +1069,7 @@ async def chat(
         db.set_chat_lock(True, canal.id)
         await interaction.response.send_message(
             f"🔒 Chat bloqueado em {canal.mention}!\n"
-            f"Apenas administradores podem enviar mensagens.",
+            f"Apenas administradores e moderadores podem enviar mensagens.",
             ephemeral=True
         )
         logger.info(f"Chat bloqueado em {canal.name} por {interaction.user}")
@@ -1303,7 +1083,7 @@ async def chat(
         logger.info(f"Chat desbloqueado por {interaction.user}")
 
 @bot.tree.command(name="anunciar", description="[ADMIN] Envia um anúncio")
-@app_commands.default_permissions(administrator=True)
+@app_commands.guild_only()
 @app_commands.describe(
     canal="Canal onde enviar o anúncio",
     mensagem="Mensagem do anúncio",
@@ -1321,6 +1101,13 @@ async def anunciar(
     cor: Optional[str] = None,
     imagem: Optional[discord.Attachment] = None
 ):
+    if not is_admin_or_moderator(interaction):
+        await interaction.response.send_message(
+            "❌ Você não tem permissão para usar este comando.",
+            ephemeral=True
+        )
+        return
+    
     try:
         await interaction.response.defer(ephemeral=True)
         
@@ -1362,7 +1149,7 @@ async def anunciar(
         )
 
 @bot.tree.command(name="controle_acesso", description="[ADMIN] Gerencia acesso de moderadores ao bot")
-@app_commands.default_permissions(administrator=True)
+@app_commands.guild_only()
 @app_commands.describe(
     acao="Ação a realizar",
     usuario="Usuário a adicionar/remover"
@@ -1372,6 +1159,13 @@ async def controle_acesso(
     acao: Literal["adicionar", "remover", "lista"],
     usuario: Optional[discord.User] = None
 ):
+    if not is_admin_or_moderator(interaction):
+        await interaction.response.send_message(
+            "❌ Você não tem permissão para usar este comando.",
+            ephemeral=True
+        )
+        return
+    
     if acao == "lista":
         moderators = db.get_moderators()
         
@@ -1389,13 +1183,15 @@ async def controle_acesso(
         
         mod_list = []
         for mod_id in moderators:
-            try:
-                user = await bot.fetch_user(int(mod_id))
-                mod_list.append(f"• {user.mention} ({user.name})")
-            except:
-                mod_list.append(f"• ID: {mod_id} (usuário não encontrado)")
+            user = await bot.fetch_user(int(mod_id))
+            mod_list.append(f"{user.name} (ID: {user.id})")
         
-        embed.description = "\n".join(mod_list)
+        embed.add_field(
+            name="Moderadores",
+            value="\n".join(mod_list),
+            inline=False
+        )
+        
         await interaction.response.send_message(embed=embed, ephemeral=True)
         return
     
@@ -1427,9 +1223,8 @@ async def controle_acesso(
                 ephemeral=True
             )
 
-# Modifique o comando tag_manual removendo a verificação de inscrição
 @bot.tree.command(name="tag_manual", description="[ADMIN] Concede TAG manual a um usuário")
-@app_commands.default_permissions(administrator=True)
+@app_commands.guild_only()
 @app_commands.describe(
     usuario="Usuário que receberá a TAG",
     quantidade="Quantidade de fichas extras da TAG (padrão: 1)"
@@ -1453,7 +1248,6 @@ async def tag_manual(
         )
         return
     
-    # Define/Remove a TAG manual
     if quantidade == 0:
         db.remove_manual_tag(usuario.id)
         await interaction.response.send_message(
@@ -1472,9 +1266,16 @@ async def tag_manual(
         logger.info(f"TAG manual ({quantidade} fichas) concedida a {usuario} por {interaction.user}")
 
 @bot.tree.command(name="sync", description="[ADMIN] Sincroniza comandos do bot")
-@app_commands.default_permissions(administrator=True)
+@app_commands.guild_only()
 @app_commands.describe(guild_id="ID do servidor (opcional, vazio para global)")
 async def sync(interaction: discord.Interaction, guild_id: Optional[str] = None):
+    if not is_admin_or_moderator(interaction):
+        await interaction.response.send_message(
+            "❌ Você não tem permissão para usar este comando.",
+            ephemeral=True
+        )
+        return
+    
     await interaction.response.defer(ephemeral=True)
     
     try:
