@@ -512,9 +512,16 @@ def admin_or_mod_check():
 
 @bot.tree.command(name="hashtag", description="[ADMIN] Define a hashtag obrigatória")
 @app_commands.guild_only()
-@admin_or_mod_check()  # ✅ USE ISTO
+@app_commands.default_permissions(administrator=True)  # ✅ MUDE ISTO
 @app_commands.describe(hashtag="Hashtag obrigatória para inscrição")
 async def hashtag(interaction: discord.Interaction, hashtag: str):
+    if not is_admin_or_moderator(interaction):  # ✅ ADICIONE ISTO
+        await interaction.response.send_message(
+            "❌ Você não tem permissão para usar este comando.",
+            ephemeral=True
+        )
+        return
+    
     if db.is_hashtag_locked():
         await interaction.response.send_message(
             "🔒 A hashtag está bloqueada e não pode ser alterada.",
@@ -533,7 +540,7 @@ async def hashtag(interaction: discord.Interaction, hashtag: str):
 
 @bot.tree.command(name="tag", description="[ADMIN] Configura a tag do servidor")
 @app_commands.guild_only()
-@admin_or_mod_check()  # ✅ USE ISTO
+@app_commands.default_permissions(administrator=True)  # ✅ MUDE ISTO
 @app_commands.describe(
     acao="Ação a realizar",
     texto="Texto da tag do servidor",
@@ -545,6 +552,13 @@ async def tag(
     texto: Optional[str] = None,
     quantidade: Optional[int] = 1
 ):
+    if not is_admin_or_moderator(interaction):  # ✅ ADICIONE ISTO
+        await interaction.response.send_message(
+            "❌ Você não tem permissão para usar este comando.",
+            ephemeral=True
+        )
+        return
+    
     if acao == "status":
         tag_config = db.get_tag()
         status = "✅ Ativada" if tag_config["enabled"] else "❌ Desativada"
@@ -629,7 +643,7 @@ async def tag(
 
 @bot.tree.command(name="fichas", description="[ADMIN] Adiciona um cargo bônus")
 @app_commands.guild_only()
-@admin_or_mod_check()  # ✅ USE ISTO
+@app_commands.default_permissions(administrator=True)  # ✅ MUDE ISTO
 @app_commands.describe(
     cargo="Cargo que dará fichas bônus",
     quantidade="Quantidade de fichas bônus",
@@ -641,6 +655,13 @@ async def fichas(
     quantidade: int,
     abreviacao: str
 ):
+    if not is_admin_or_moderator(interaction):  # ✅ ADICIONE ISTO
+        await interaction.response.send_message(
+            "❌ Você não tem permissão para usar este comando.",
+            ephemeral=True
+        )
+        return
+    
     if quantidade <= 0:
         await interaction.response.send_message(
             "❌ A quantidade deve ser maior que 0!",
@@ -663,9 +684,16 @@ async def fichas(
 
 @bot.tree.command(name="tirar", description="[ADMIN] Remove um cargo bônus")
 @app_commands.guild_only()
-@admin_or_mod_check()  # ✅ USE ISTO
+@app_commands.default_permissions(administrator=True)  # ✅ MUDE ISTO
 @app_commands.describe(cargo="Cargo a ser removido dos bônus")
 async def tirar(interaction: discord.Interaction, cargo: discord.Role):
+    if not is_admin_or_moderator(interaction):  # ✅ ADICIONE ISTO
+        await interaction.response.send_message(
+            "❌ Você não tem permissão para usar este comando.",
+            ephemeral=True
+        )
+        return
+    
     if db.remove_bonus_role(cargo.id):
         await interaction.response.send_message(
             f"✅ Cargo {cargo.mention} removido dos bônus!",
@@ -680,9 +708,16 @@ async def tirar(interaction: discord.Interaction, cargo: discord.Role):
 
 @bot.tree.command(name="lista", description="[ADMIN] Lista os participantes")
 @app_commands.guild_only()
-@admin_or_mod_check()  # ✅ USE ISTO
+@app_commands.default_permissions(administrator=True)  # ✅ MUDE ISTO
 @app_commands.describe(tipo="Tipo de listagem")
 async def lista(interaction: discord.Interaction, tipo: Literal["simples", "com_fichas"]):
+    if not is_admin_or_moderator(interaction):  # ✅ ADICIONE ISTO
+        await interaction.response.send_message(
+            "❌ Você não tem permissão para usar este comando.",
+            ephemeral=True
+        )
+        return
+    
     participants = db.get_all_participants()
     
     if not participants:
@@ -724,9 +759,16 @@ async def lista(interaction: discord.Interaction, tipo: Literal["simples", "com_
 
 @bot.tree.command(name="exportar", description="[ADMIN] Exporta lista de participantes")
 @app_commands.guild_only()
-@admin_or_mod_check()  # ✅ USE ISTO
+@app_commands.default_permissions(administrator=True)  # ✅ MUDE ISTO
 @app_commands.describe(tipo="Tipo de exportação")
 async def exportar(interaction: discord.Interaction, tipo: Literal["simples", "com_fichas"]):
+    if not is_admin_or_moderator(interaction):  # ✅ ADICIONE ISTO
+        await interaction.response.send_message(
+            "❌ Você não tem permissão para usar este comando.",
+            ephemeral=True
+        )
+        return
+    
     participants = db.get_all_participants()
     
     if not participants:
@@ -773,8 +815,15 @@ async def exportar(interaction: discord.Interaction, tipo: Literal["simples", "c
 
 @bot.tree.command(name="atualizar", description="[ADMIN] Recalcula fichas de todos os participantes")
 @app_commands.guild_only()
-@admin_or_mod_check()  # ✅ USE ISTO
+@app_commands.default_permissions(administrator=True)  # ✅ MUDE ISTO
 async def atualizar(interaction: discord.Interaction):
+    if not is_admin_or_moderator(interaction):  # ✅ ADICIONE ISTO
+        await interaction.response.send_message(
+            "❌ Você não tem permissão para usar este comando.",
+            ephemeral=True
+        )
+        return
+    
     await interaction.response.defer(ephemeral=True)
     
     participants = db.get_all_participants()
@@ -815,8 +864,15 @@ async def atualizar(interaction: discord.Interaction):
 
 @bot.tree.command(name="estatisticas", description="[ADMIN] Mostra estatísticas do sorteio")
 @app_commands.guild_only()
-@admin_or_mod_check()  # ✅ USE ISTO
+@app_commands.default_permissions(administrator=True)  # ✅ MUDE ISTO
 async def estatisticas(interaction: discord.Interaction):
+    if not is_admin_or_moderator(interaction):  # ✅ ADICIONE ISTO
+        await interaction.response.send_message(
+            "❌ Você não tem permissão para usar este comando.",
+            ephemeral=True
+        )
+        return
+    
     stats = db.get_statistics()
     
     embed = discord.Embed(
@@ -868,7 +924,7 @@ async def estatisticas(interaction: discord.Interaction):
 
 @bot.tree.command(name="blacklist", description="[ADMIN] Gerencia a blacklist")
 @app_commands.guild_only()
-@admin_or_mod_check()  # ✅ USE ISTO
+@app_commands.default_permissions(administrator=True)  # ✅ MUDE ISTO
 @app_commands.describe(
     acao="Ação a realizar",
     usuario="Usuário para banir/desbanir",
@@ -880,6 +936,13 @@ async def blacklist(
     usuario: Optional[discord.User] = None,
     motivo: Optional[str] = None
 ):
+    if not is_admin_or_moderator(interaction):  # ✅ ADICIONE ISTO
+        await interaction.response.send_message(
+            "❌ Você não tem permissão para usar este comando.",
+            ephemeral=True
+        )
+        return
+    
     if acao == "lista":
         blacklist_data = db.get_blacklist()
         
@@ -952,7 +1015,7 @@ async def blacklist(
 
 @bot.tree.command(name="chat", description="[ADMIN] Bloqueia/desbloqueia chat")
 @app_commands.guild_only()
-@admin_or_mod_check()  # ✅ USE ISTO
+@app_commands.default_permissions(administrator=True)  # ✅ MUDE ISTO
 @app_commands.describe(
     acao="Ação a realizar",
     canal="Canal a ser bloqueado"
@@ -962,6 +1025,13 @@ async def chat(
     acao: Literal["on", "off", "status"],
     canal: Optional[discord.TextChannel] = None
 ):
+    if not is_admin_or_moderator(interaction):  # ✅ ADICIONE ISTO
+        await interaction.response.send_message(
+            "❌ Você não tem permissão para usar este comando.",
+            ephemeral=True
+        )
+        return
+    
     if acao == "status":
         chat_lock = db.get_chat_lock()
         status = "🔒 Bloqueado" if chat_lock["enabled"] else "🔓 Desbloqueado"
@@ -1008,7 +1078,7 @@ async def chat(
 
 @bot.tree.command(name="anunciar", description="[ADMIN] Envia um anúncio")
 @app_commands.guild_only()
-@admin_or_mod_check()  # ✅ USE ISTO
+@app_commands.default_permissions(administrator=True)  # ✅ MUDE ISTO
 @app_commands.describe(
     canal="Canal onde enviar o anúncio",
     mensagem="Mensagem do anúncio",
@@ -1026,6 +1096,13 @@ async def anunciar(
     cor: Optional[str] = None,
     imagem: Optional[discord.Attachment] = None
 ):
+    if not is_admin_or_moderator(interaction):  # ✅ ADICIONE ISTO
+        await interaction.response.send_message(
+            "❌ Você não tem permissão para usar este comando.",
+            ephemeral=True
+        )
+        return
+    
     try:
         await interaction.response.defer(ephemeral=True)
         
@@ -1068,7 +1145,7 @@ async def anunciar(
 
 @bot.tree.command(name="controle_acesso", description="[ADMIN] Gerencia acesso de moderadores ao bot")
 @app_commands.guild_only()
-@admin_or_mod_check()  # ✅ USE ISTO (apenas admin, não moderador)
+@app_commands.default_permissions(administrator=True)  # ✅ MUDE ISTO
 @app_commands.describe(
     acao="Ação a realizar",
     usuario="Usuário a adicionar/remover"
@@ -1078,6 +1155,14 @@ async def controle_acesso(
     acao: Literal["adicionar", "remover", "lista"],
     usuario: Optional[discord.User] = None
 ):
+    # ✅ ADICIONE ISTO - validação manual
+    if not is_admin_or_moderator(interaction):
+        await interaction.response.send_message(
+            "❌ Você não tem permissão para usar este comando.",
+            ephemeral=True
+        )
+        return
+    
     if acao == "lista":
         moderators = db.get_moderators()
         
@@ -1154,7 +1239,7 @@ async def controle_acesso(
 
 @bot.tree.command(name="tag_manual", description="[ADMIN] Concede TAG manual a um usuário")
 @app_commands.guild_only()
-@admin_or_mod_check()  # ✅ USE ISTO
+@app_commands.default_permissions(administrator=True)  # ✅ MUDE ISTO
 @app_commands.describe(
     usuario="Usuário que receberá a TAG",
     quantidade="Quantidade de fichas extras da TAG (padrão: 1)"
@@ -1164,6 +1249,13 @@ async def tag_manual(
     usuario: discord.User,
     quantidade: Optional[int] = 1
 ):
+    if not is_admin_or_moderator(interaction):  # ✅ ADICIONE ISTO
+        await interaction.response.send_message(
+            "❌ Você não tem permissão para usar este comando.",
+            ephemeral=True
+        )
+        return
+    
     if quantidade < 0:
         await interaction.response.send_message(
             "❌ A quantidade não pode ser negativa!",
@@ -1190,9 +1282,16 @@ async def tag_manual(
 
 @bot.tree.command(name="sync", description="[ADMIN] Sincroniza comandos do bot")
 @app_commands.guild_only()
-@admin_or_mod_check()  # ✅ USE ISTO
+@app_commands.default_permissions(administrator=True)  # ✅ MUDE ISTO
 @app_commands.describe(guild_id="ID do servidor (opcional, vazio para global)")
 async def sync(interaction: discord.Interaction, guild_id: Optional[str] = None):
+    if not is_admin_or_moderator(interaction):  # ✅ ADICIONE ISTO
+        await interaction.response.send_message(
+            "❌ Você não tem permissão para usar este comando.",
+            ephemeral=True
+        )
+        return
+    
     await interaction.response.defer(ephemeral=True)
     
     try:
