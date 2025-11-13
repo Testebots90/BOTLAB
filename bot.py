@@ -10,6 +10,21 @@ from threading import Thread
 from flask import Flask, jsonify
 from dotenv import load_dotenv
 
+# COLOQUE AS FUNÇÕES AQUI:
+def is_admin_or_moderator(interaction: discord.Interaction) -> bool:
+    """Verifica se o usuário é admin ou moderador do bot"""
+    return interaction.user.guild_permissions.administrator or db.is_moderator(interaction.user.id)
+
+def admin_or_mod_check():
+    """Verifica admin ou moderador - bloqueia na UI também"""
+    async def predicate(interaction: discord.Interaction) -> bool:
+        is_admin = interaction.user.guild_permissions.administrator
+        is_mod = db.is_moderator(interaction.user.id)
+        if not (is_admin or is_mod):
+            raise app_commands.MissingPermissions(["administrator"])
+        return True
+    return app_commands.check(predicate)
+
 app = Flask(__name__)
 
 @app.route('/')
@@ -490,21 +505,6 @@ async def setup_inscricao(
             f"❌ Erro ao configurar: {str(e)}",
             ephemeral=True
         )
-
-def is_admin_or_moderator(interaction: discord.Interaction) -> bool:
-    """Verifica se o usuário é admin ou moderador do bot"""
-    return interaction.user.guild_permissions.administrator or db.is_moderator(interaction.user.id)
-
-def admin_or_mod_check():
-    """Verifica admin ou moderador - bloqueia na UI também"""
-    async def predicate(interaction: discord.Interaction) -> bool:
-        is_admin = interaction.user.guild_permissions.administrator
-        is_mod = db.is_moderator(interaction.user.id)
-        if not (is_admin or is_mod):
-            # esconde o comando na UI para quem não é admin/mod
-            raise app_commands.MissingPermissions(["administrator"])
-        return True
-    return app_commands.check(predicate)
 
 @bot.tree.command(name="hashtag", description="[ADMIN] Define a hashtag obrigatória")
 @app_commands.guild_only()
