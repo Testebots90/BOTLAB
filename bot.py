@@ -307,32 +307,6 @@ async def on_ready():
     except Exception as e:
         logger.error(f"Erro ao re-registrar view: {e}")
     
-    # Substituir a lógica que forçava "administrator" como default_member_permissions
-    try:
-        admin_cmds = [
-            "setup_inscricao","hashtag","tag","fichas","tirar","lista","exportar",
-            "atualizar","estatisticas","limpar","blacklist","chat","anunciar",
-            "controle_acesso","tag_manual","sync"
-        ]
-        for name in admin_cmds:
-            cmd = None
-            # tenta obter comando diretamente
-            try:
-                cmd = bot.tree.get_command(name)
-            except Exception:
-                cmd = None
-            if not cmd:
-                for c in bot.tree.commands:
-                    if c.name == name:
-                        cmd = c
-                        break
-            if cmd:
-                # remove a restrição de administrador para que o comando fique visível na UI
-                # (a execução ainda será protegida por is_admin_or_moderator dentro do handler)
-                cmd.default_member_permissions = None
-    except Exception:
-        pass
-
     try:
         synced = await bot.tree.sync()
         logger.info(f"Sincronizados {len(synced)} comandos")
@@ -1226,16 +1200,33 @@ async def controle_acesso(
     
     if acao == "adicionar":
         db.add_moderator(usuario.id)
+        
+        # ✅ SINCRONIZE OS COMANDOS APÓS ADICIONAR
+        try:
+            await bot.tree.sync(guild=interaction.guild)
+            logger.info(f"Comandos sincronizados após adicionar moderador {usuario}")
+        except Exception as e:
+            logger.error(f"Erro ao sincronizar após adicionar moderador: {e}")
+        
         await interaction.response.send_message(
-            f"✅ {usuario.mention} agora tem controle total do bot!",
+            f"✅ {usuario.mention} agora tem controle total do bot!\n"
+            f"⏳ Os comandos aparecerão em alguns segundos...",
             ephemeral=True
         )
         logger.info(f"Moderador adicionado: {usuario} por {interaction.user}")
     
     elif acao == "remover":
         if db.remove_moderator(usuario.id):
+            # ✅ SINCRONIZE OS COMANDOS APÓS REMOVER
+            try:
+                await bot.tree.sync(guild=interaction.guild)
+                logger.info(f"Comandos sincronizados após remover moderador {usuario}")
+            except Exception as e:
+                logger.error(f"Erro ao sincronizar após remover moderador: {e}")
+            
             await interaction.response.send_message(
-                f"✅ {usuario.mention} foi removido dos moderadores!",
+                f"✅ {usuario.mention} foi removido dos moderadores!\n"
+                f"⏳ Os comandos desaparecerão em alguns segundos...",
                 ephemeral=True
             )
             logger.info(f"Moderador removido: {usuario} por {interaction.user}")
