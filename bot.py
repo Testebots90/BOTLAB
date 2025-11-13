@@ -500,7 +500,8 @@ def admin_or_mod_check():
         is_admin = interaction.user.guild_permissions.administrator
         is_mod = db.is_moderator(interaction.user.id)
         if not (is_admin or is_mod):
-            raise app_commands.MissingPermissions(['administrator'])
+            # esconde o comando na UI para quem não é admin/mod
+            raise app_commands.MissingPermissions(["administrator"])
         return True
     return app_commands.check(predicate)
 
@@ -1186,10 +1187,9 @@ async def controle_acesso(
         
         # ✅ SINCRONIZE OS COMANDOS APÓS ADICIONAR
         try:
-            await bot.tree.sync()  # Sincroniza globalmente
-            logger.info(f"Comandos sincronizados após adicionar moderador {usuario}")
+            await bot.tree.sync(guild=interaction.guild)
         except Exception as e:
-            logger.error(f"Erro ao sincronizar após adicionar moderador: {e}")
+            logger.exception("Erro ao sincronizar comandos após controle_acesso: %s", e)
         
         await interaction.response.send_message(
             f"✅ {usuario.mention} agora tem controle total do bot!\n"
@@ -1202,10 +1202,9 @@ async def controle_acesso(
         if db.remove_moderator(usuario.id):
             # ✅ SINCRONIZE OS COMANDOS APÓS REMOVER
             try:
-                await bot.tree.sync()  # Sincroniza globalmente
-                logger.info(f"Comandos sincronizados após remover moderador {usuario}")
+                await bot.tree.sync(guild=interaction.guild)
             except Exception as e:
-                logger.error(f"Erro ao sincronizar após remover moderador: {e}")
+                logger.exception("Erro ao sincronizar comandos após controle_acesso: %s", e)
             
             await interaction.response.send_message(
                 f"✅ {usuario.mention} foi removido dos moderadores!\n"
