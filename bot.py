@@ -410,18 +410,12 @@ async def verificar(interaction: discord.Interaction):
     
     await interaction.response.send_message(embed=embed, ephemeral=True)
 
-# antigo (causa do erro)
-# @bot.tree.command(name="setup_inscricao", description="[ADMIN] Configura o sistema de inscrições")
-# @app_commands.default_prmissions(administrator=True)
-# @app_commands.describe(...)
-
-# novo — movendo a permissão para o decorator do comando
+# antigo — movendo a permissão para o decorator do comando
 @bot.tree.command(
     name="setup_inscricao",
     description="[ADMIN] Configura o sistema de inscrições"
 )
 @app_commands.guild_only()
-@app_commands.default_permissions(administrator=True)
 @app_commands.describe(
     canal_botao="Canal onde será enviado o botão de inscrição",
     canal_inscricoes="Canal onde serão postadas as inscrições",
@@ -641,7 +635,6 @@ async def tag(
 
 @bot.tree.command(name="fichas", description="[ADMIN] Adiciona um cargo bônus")
 @app_commands.guild_only()
-@app_commands.default_permissions(administrator=True)  # ✅ MUDE ISTO
 @app_commands.describe(
     cargo="Cargo que dará fichas bônus",
     quantidade="Quantidade de fichas bônus",
@@ -653,7 +646,7 @@ async def fichas(
     quantidade: int,
     abreviacao: str
 ):
-    if not is_admin_or_moderator(interaction):  # ✅ ADICIONE ISTO
+    if not is_admin_or_moderator(interaction):  # ✅ Validação manual
         await interaction.response.send_message(
             "❌ Você não tem permissão para usar este comando.",
             ephemeral=True
@@ -682,7 +675,6 @@ async def fichas(
 
 @bot.tree.command(name="tirar", description="[ADMIN] Remove um cargo bônus")
 @app_commands.guild_only()
-@app_commands.default_permissions(administrator=True)  # ✅ MUDE ISTO
 @app_commands.describe(cargo="Cargo a ser removido dos bônus")
 async def tirar(interaction: discord.Interaction, cargo: discord.Role):
     if not is_admin_or_moderator(interaction):  # ✅ ADICIONE ISTO
@@ -706,7 +698,6 @@ async def tirar(interaction: discord.Interaction, cargo: discord.Role):
 
 @bot.tree.command(name="lista", description="[ADMIN] Lista os participantes")
 @app_commands.guild_only()
-@app_commands.default_permissions(administrator=True)  # ✅ MUDE ISTO
 @app_commands.describe(tipo="Tipo de listagem")
 async def lista(interaction: discord.Interaction, tipo: Literal["simples", "com_fichas"]):
     if not is_admin_or_moderator(interaction):  # ✅ ADICIONE ISTO
@@ -757,7 +748,6 @@ async def lista(interaction: discord.Interaction, tipo: Literal["simples", "com_
 
 @bot.tree.command(name="exportar", description="[ADMIN] Exporta lista de participantes")
 @app_commands.guild_only()
-@app_commands.default_permissions(administrator=True)  # ✅ MUDE ISTO
 @app_commands.describe(tipo="Tipo de exportação")
 async def exportar(interaction: discord.Interaction, tipo: Literal["simples", "com_fichas"]):
     if not is_admin_or_moderator(interaction):  # ✅ ADICIONE ISTO
@@ -813,7 +803,6 @@ async def exportar(interaction: discord.Interaction, tipo: Literal["simples", "c
 
 @bot.tree.command(name="atualizar", description="[ADMIN] Recalcula fichas de todos os participantes")
 @app_commands.guild_only()
-@app_commands.default_permissions(administrator=True)  # ✅ MUDE ISTO
 async def atualizar(interaction: discord.Interaction):
     if not is_admin_or_moderator(interaction):  # ✅ ADICIONE ISTO
         await interaction.response.send_message(
@@ -862,7 +851,6 @@ async def atualizar(interaction: discord.Interaction):
 
 @bot.tree.command(name="estatisticas", description="[ADMIN] Mostra estatísticas do sorteio")
 @app_commands.guild_only()
-@app_commands.default_permissions(administrator=True)  # ✅ MUDE ISTO
 async def estatisticas(interaction: discord.Interaction):
     if not is_admin_or_moderator(interaction):  # ✅ ADICIONE ISTO
         await interaction.response.send_message(
@@ -922,7 +910,6 @@ async def estatisticas(interaction: discord.Interaction):
 
 @bot.tree.command(name="blacklist", description="[ADMIN] Gerencia a blacklist")
 @app_commands.guild_only()
-@app_commands.default_permissions(administrator=True)  # ✅ MUDE ISTO
 @app_commands.describe(
     acao="Ação a realizar",
     usuario="Usuário para banir/desbanir",
@@ -1013,7 +1000,6 @@ async def blacklist(
 
 @bot.tree.command(name="chat", description="[ADMIN] Bloqueia/desbloqueia chat")
 @app_commands.guild_only()
-@app_commands.default_permissions(administrator=True)  # ✅ MUDE ISTO
 @app_commands.describe(
     acao="Ação a realizar",
     canal="Canal a ser bloqueado"
@@ -1076,7 +1062,6 @@ async def chat(
 
 @bot.tree.command(name="anunciar", description="[ADMIN] Envia um anúncio")
 @app_commands.guild_only()
-@app_commands.default_permissions(administrator=True)  # ✅ MUDE ISTO
 @app_commands.describe(
     canal="Canal onde enviar o anúncio",
     mensagem="Mensagem do anúncio",
@@ -1143,7 +1128,6 @@ async def anunciar(
 
 @bot.tree.command(name="controle_acesso", description="[ADMIN] Gerencia acesso de moderadores ao bot")
 @app_commands.guild_only()
-@app_commands.default_permissions(administrator=True)  # ✅ MUDE ISTO
 @app_commands.describe(
     acao="Ação a realizar",
     usuario="Usuário a adicionar/remover"
@@ -1202,7 +1186,7 @@ async def controle_acesso(
         
         # ✅ SINCRONIZE OS COMANDOS APÓS ADICIONAR
         try:
-            await bot.tree.sync(guild=interaction.guild)
+            await bot.tree.sync()  # Sincroniza globalmente
             logger.info(f"Comandos sincronizados após adicionar moderador {usuario}")
         except Exception as e:
             logger.error(f"Erro ao sincronizar após adicionar moderador: {e}")
@@ -1218,7 +1202,7 @@ async def controle_acesso(
         if db.remove_moderator(usuario.id):
             # ✅ SINCRONIZE OS COMANDOS APÓS REMOVER
             try:
-                await bot.tree.sync(guild=interaction.guild)
+                await bot.tree.sync()  # Sincroniza globalmente
                 logger.info(f"Comandos sincronizados após remover moderador {usuario}")
             except Exception as e:
                 logger.error(f"Erro ao sincronizar após remover moderador: {e}")
@@ -1237,7 +1221,6 @@ async def controle_acesso(
 
 @bot.tree.command(name="tag_manual", description="[ADMIN] Concede TAG manual a um usuário")
 @app_commands.guild_only()
-@app_commands.default_permissions(administrator=True)  # ✅ MUDE ISTO
 @app_commands.describe(
     usuario="Usuário que receberá a TAG",
     quantidade="Quantidade de fichas extras da TAG (padrão: 1)"
@@ -1280,7 +1263,6 @@ async def tag_manual(
 
 @bot.tree.command(name="sync", description="[ADMIN] Sincroniza comandos do bot")
 @app_commands.guild_only()
-@app_commands.default_permissions(administrator=True)  # ✅ MUDE ISTO
 @app_commands.describe(guild_id="ID do servidor (opcional, vazio para global)")
 async def sync(interaction: discord.Interaction, guild_id: Optional[str] = None):
     if not is_admin_or_moderator(interaction):  # ✅ ADICIONE ISTO
