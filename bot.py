@@ -344,94 +344,10 @@ async def on_message(message):
     
     await bot.process_commands(message)
 
-@bot.tree.command(name="ajuda", description="Mostra a lista de comandos disponíveis")
-async def ajuda(interaction: discord.Interaction):
-    is_admin = interaction.user.guild_permissions.administrator
-    
-    embed = discord.Embed(
-        title="📋 Comandos do Bot de Sorteios",
-        description="Lista de comandos disponíveis",
-        color=discord.Color.blue()
-    )
-    
-    public_commands = [
-        "/ajuda - Mostra esta mensagem",
-        "/verificar - Verifica seu status de inscrição"
-    ]
-    
-    embed.add_field(
-        name="🔓 Comandos Públicos",
-        value="\n".join(public_commands),
-        inline=False
-    )
-    
-    if is_admin:
-        admin_commands = [
-            "/setup_inscricao - Configura o sistema de inscrições",
-            "/hashtag - Define a hashtag obrigatória",
-            "/tag - Configura a tag do servidor",
-            "/tag_manual - Concede TAG manual a um usuário",
-            "/fichas - Adiciona cargo bônus",
-            "/tirar - Remove cargo bônus",
-            "/lista - Lista participantes",
-            "/exportar - Exporta lista de participantes",
-            "/atualizar - Recalcula fichas de todos",
-            "/estatisticas - Mostra estatísticas",
-            "/limpar - Limpa dados",
-            "/blacklist - Gerencia blacklist",
-            "/chat - Bloqueia/desbloqueia chat",
-            "/anunciar - Envia anúncio",
-            "/sync - Sincroniza comandos"
-        ]
-        
-        embed.add_field(
-            name="🔐 Comandos Administrativos",
-            value="\n".join(admin_commands),
-            inline=False
-        )
-    
-    await interaction.response.send_message(embed=embed, ephemeral=True)
-
-@bot.tree.command(name="verificar", description="Verifica seu status de inscrição")
-async def verificar(interaction: discord.Interaction):
-    participant = db.get_participant(interaction.user.id)
-    
-    if not participant:
-        await interaction.response.send_message(
-            "❌ Você não está inscrito no sorteio.",
-            ephemeral=True
-        )
-        return
-    
-    first_name = participant["first_name"]
-    last_name = participant["last_name"]
-    tickets = participant["tickets"]
-    total_tickets = utils.get_total_tickets(tickets)
-    
-    embed = discord.Embed(
-        title="✅ Seu Status de Inscrição",
-        description=f"**Nome**: {first_name} {last_name}",
-        color=discord.Color.green()
-    )
-    
-    embed.add_field(name="Total de Fichas", value=f"🎫 {total_tickets}", inline=False)
-    
-    tickets_list = utils.format_tickets_list(tickets, interaction.guild)
-    embed.add_field(
-        name="Detalhamento",
-        value="\n".join(tickets_list),
-        inline=False
-    )
-    
-    await interaction.response.send_message(embed=embed, ephemeral=True)
-
-# antigo — movendo a permissão para o decorator do comando
-@bot.tree.command(
-    name="setup_inscricao",
-    description="[ADMIN] Configura o sistema de inscrições"
-)
+# Para comandos administrativos:
+@bot.tree.command(name="setup_inscricao", description="[ADMIN] Configura o sistema de inscrições")
 @app_commands.guild_only()
-@admin_or_mod_check()  # <-- ADICIONE ESTA LINHA
+@admin_or_mod_check()
 @app_commands.describe(
     canal_botao="Canal onde será enviado o botão de inscrição",
     canal_inscricoes="Canal onde serão postadas as inscrições",
@@ -508,7 +424,7 @@ async def setup_inscricao(
 
 @bot.tree.command(name="hashtag", description="[ADMIN] Define a hashtag obrigatória")
 @app_commands.guild_only()
-@admin_or_mod_check()  # <-- ADICIONE ESTA LINHA
+@admin_or_mod_check()
 @app_commands.describe(hashtag="Hashtag obrigatória para inscrição")
 async def hashtag(interaction: discord.Interaction, hashtag: str):
     if not is_admin_or_moderator(interaction):  # ✅ ADICIONE ISTO
@@ -639,7 +555,8 @@ async def tag(
 
 @bot.tree.command(name="fichas", description="[ADMIN] Adiciona um cargo bônus")
 @app_commands.guild_only()
-@admin_or_mod_check()  # <-- ADICIONE ESTA LINHA
+@app_commands.default_permissions(manage_guild=True)  # <-- ADICIONE ESTA LINHA
+@admin_or_mod_check()
 @app_commands.describe(
     cargo="Cargo que dará fichas bônus",
     quantidade="Quantidade de fichas bônus",
